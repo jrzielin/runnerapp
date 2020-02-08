@@ -13,6 +13,8 @@ class User(db.Model):
     password = db.Column(db.String(128), nullable=False)
     created = db.Column(db.DateTime, default=datetime.utcnow)
     updated = db.Column(db.DateTime, default=datetime.utcnow, onupdate=datetime.utcnow)
+    is_active = db.Column(db.Boolean, nullable=False, default=True)
+    metric = db.Column(db.Boolean, nullable=False, default=False)
 
     def validate(self):
         if self.first_name is None:
@@ -30,6 +32,12 @@ class User(db.Model):
         if self.password is None:
             return 'Must supply password'
 
+        if self.is_active not in {True, False}:
+            return 'Invalid is_active value'
+
+        if self.metric not in {True, False}:
+            return 'Invalid metric value'
+
         if len(self.password) < 8:
             return 'Password must be at least 8 characters'
 
@@ -39,6 +47,8 @@ class User(db.Model):
             'first_name': self.first_name,
             'last_name': self.last_name,
             'email': self.email,
+            'is_active': self.is_active,
+            'metric': self.metric,
             'created': self.created.strftime(ISO_FORMAT),
             'updated': self.updated.strftime(ISO_FORMAT)
         }
@@ -87,8 +97,8 @@ class Run(db.Model):
             'run_type': self.run_type,
             'location': self.location,
             'notes': self.notes,
-            'created': self.created,
-            'updated': self.updated
+            'created': self.created.strftime(ISO_FORMAT),
+            'updated': self.updated.strftime(ISO_FORMAT)
         }
 
         if include_comments:
@@ -101,6 +111,22 @@ class Run(db.Model):
 
         return data
 
+    def validate(self):
+        if self.run_date is None:
+            return 'Invalid run date'
+
+        if self.distance is None:
+            return 'Must supply distance'
+
+        if self.duration is None:
+            return 'Must supply duration'
+
+        if self.metric not in {True, False}:
+            return 'Invalid metric setting'
+        
+        if self.run_type is None:
+            return 'Must supply run type'
+        
     def __repr__(self):
         return '<Run {}>'.format(self.id)
 
