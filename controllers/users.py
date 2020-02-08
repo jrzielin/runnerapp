@@ -1,14 +1,38 @@
-from flask import Blueprint, jsonify, request
+from flask import jsonify, request
+from flask_restful import Resource
+from flask_jwt import jwt_required, current_identity
 from app import db, models
 from sqlalchemy.exc import IntegrityError
 from helpers import parse_int
 from constants import MAX_PAGE_SIZE, DEFAULT_PAGE, DEFAULT_PAGE_SIZE
 
-users = Blueprint('users', __name__)
+class UserList(Resource):
+    @jwt_required()
+    def get(self):
+        page = parse_int(request.args.get('page')) or DEFAULT_PAGE
+        page_size = parse_int(request.args.get('page_size')) or DEFAULT_PAGE_SIZE
+        search = request.args.get('search')
 
-@users.route('/api/users', methods=['GET', 'POST'])
-def user_list():
-    if request.method == 'POST':
+        if page_size > MAX_PAGE_SIZE:
+            page_size = MAX_PAGE_SIZE
+
+        if search:
+            search = search.strip().split(' ')
+
+            if len(search) > 1:
+                first_name = search[0]
+                last_name = search[1]
+                users = models.User.query.filter_by(first_name=first_name, last_name=last_name).order_by('last_name').paginate(page, page_size, False).items
+            else:
+                first_name = search[0]
+                users = models.User.query.filter_by(first_name=first_name).order_by('last_name').paginate(page, page_size, False).items
+        else:
+            users = models.User.query.order_by('last_name').paginate(page, page_size, False).items
+        users = [user.serialize() for user in users]
+        return jsonify({'users': users})
+
+class Register(Resource):
+    def post(self):
         user = models.User(
             first_name=request.form.get('first_name'),
             last_name=request.form.get('last_name'),
@@ -37,44 +61,22 @@ def user_list():
 
         return jsonify({'user': user.serialize()}), 201
 
-    page = parse_int(request.args.get('page')) or DEFAULT_PAGE
-    page_size = parse_int(request.args.get('page_size')) or DEFAULT_PAGE_SIZE
-    search = request.args.get('search')
+class UserDetail(Resource):
+    @jwt_required()
+    def get(self, user_id):
+        user = models.User.query.filter_by(id=user_id).first()
 
-    if page_size > MAX_PAGE_SIZE:
-        page_size = MAX_PAGE_SIZE
+        if user is None:
+            return jsonify({'error': 'User does not exist'}), 404
+        
+        return jsonify({'user': user.serialize()})
 
-    if search:
-        search = search.strip().split(' ')
+class UserRuns(Resource):
+    @jwt_required()
+    def get(self, user_id):
+        user = models.User.query.filter_by(id=user_id).first()
 
-        if len(search) > 1:
-            first_name = search[0]
-            last_name = search[1]
-            users = models.User.query.filter_by(first_name=first_name, last_name=last_name).order_by('last_name').paginate(page, page_size, False).items
-        else:
-            first_name = search[0]
-            users = models.User.query.filter_by(first_name=first_name).order_by('last_name').paginate(page, page_size, False).items
-    else:
-        users = models.User.query.order_by('last_name').paginate(page, page_size, False).items
-    users = [user.serialize() for user in users]
-    return jsonify({'users': users})
+        if user is None:
+            return jsonify({'error': 'User does not exist'}), 404
 
-
-@users.route('/api/users/<int:user_id>')
-def user_detail(user_id):
-    user = models.User.query.filter_by(id=user_id).first()
-
-    if user is None:
-        return jsonify({'error': 'User does not exist'}), 404
-    
-    return jsonify({'user': user.serialize()})
-
-
-@users.route('/api/users/<int:user_id>/runs')
-def user_runs(user_id):
-    user = models.User.query.filter_by(id=user_id).first()
-
-    if user is None:
-        return jsonify({'error': 'User does not exist'}), 404
-
-    return jsonify({'user': user.serialize(include_runs=True)})
+        return jsonify({'user': user.serialize(include_runs=True)})

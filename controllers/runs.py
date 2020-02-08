@@ -1,9 +1,10 @@
-from flask import Blueprint, jsonify
+from flask import jsonify
+from flask_restful import Resource
+from flask_jwt import jwt_required, current_identity
 import models
 
-runs = Blueprint('runs', __name__)
-
-@runs.route('/api/runs')
-def run_list():
-    runs = models.Run.query.all()
-    return jsonify({'runs': runs})
+class RunList(Resource):
+    @jwt_required()
+    def get(self):
+        runs = models.Run.query.all()
+        return jsonify({'runs': runs})
