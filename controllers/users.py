@@ -21,6 +21,9 @@ def user_list():
         if error:
             return jsonify({'error': error}), 400
 
+        if models.User.query.filter_by(email=request.form.get('email')).first():
+            return jsonify({'error': 'That email address is already in use'}), 400
+
         user.hash_password()
         
         try:
