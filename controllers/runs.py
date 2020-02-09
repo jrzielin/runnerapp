@@ -62,7 +62,7 @@ class RunDetail(Resource):
         if not run:
             return self.send_404()
         
-        return jsonify({'run': run.serialize()})
+        return jsonify({'run': run.serialize(include_comments=True, include_intervals=True)})
 
     @jwt_required()
     def put(self, run_id):
@@ -120,3 +120,86 @@ class RunDetail(Resource):
             return make_response(jsonify({'error': 'Unable to delete run'}), 500)
 
         return jsonify({'message': 'Successfully deleted run'})
+
+class CommentsList(Resource):
+    @jwt_required()
+    def get(self, run_id):
+        run = models.Run.query.filter_by(id=run_id).first()
+        if not run:
+            return make_response(jsonify({'error': 'Run does not exist'}), 404)
+
+        comments = [comment.serialize() for comment in run.run_comments]
+        return jsonify({'comments': comments})
+    
+    @jwt_required()
+    def post(self, run_id):
+        run = models.Run.query.filter_by(id=run_id).first()
+        if not run:
+            return make_response(jsonify({'error': 'Run does not exist'}), 404)
+
+        comment = models.RunComment(
+            run_id=run_id,
+            user_id=current_identity.id,
+            comment=request.form.get('comment')
+        )
+
+        error = comment.validate()
+        if error:
+            return make_response(jsonify({'error': error}), 400)
+
+        try:
+            db.session.add(comment)
+            db.session.commit()
+        except:
+            return make_response(jsonify({'error': 'Unable to add comment'}), 500)
+        
+        return jsonify({'comment': comment.serialize()})
+
+class CommentDetail(Resource):
+    @jwt_required()
+    def get(self, comment_id):
+        comment = models.RunComment.query.filter_by(id=comment_id).first()
+        if comment is None:
+            return make_response(jsonify({'error': 'Comment does not exist'}), 404)
+
+        return jsonify({'comment': comment.serialize()})
+
+    @jwt_required()
+    def put(self, comment_id):
+        comment = models.RunComment.query.filter_by(id=comment_id).first()
+        if comment is None:
+            return make_response(jsonify({'error': 'Comment does not exist'}), 404)
+
+        if comment.user_id != current_identity.id:
+            return make_response(jsonify({'error': 'Unauthorized to update comment'}), 403)
+
+        if 'comment' in request.form:
+            comment.comment = request.form['comment']
+
+        error = comment.validate()
+        if error:
+            return make_response(jsonify({'error': error}), 400)
+        
+        try:
+            db.session.commit()
+        except:
+            return make_response(jsonify({'error': 'Unable to update comment'}), 500)
+
+        return jsonify({'comment': comment.serialize()})
+
+    @jwt_required()
+    def delete(self, comment_id):
+        comment = models.RunComment.query.filter_by(id=comment_id).first()
+        if comment is None:
+            return make_response(jsonify({'error': 'Comment does not exist'}), 404)
+
+        if comment.user_id != current_identity.id:
+            return make_response(jsonify({'error': 'Unauthorized to update comment'}), 403)
+
+        try:
+            db.session.delete(comment)
+            db.session.commit()
+        except:
+            return make_response(jsonify({'error': 'Unable to delete comment'}), 500)
+
+        return jsonify({'message': 'Comment successfully deleted'})

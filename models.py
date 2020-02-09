@@ -172,11 +172,15 @@ class RunComment(db.Model):
         return {
             'id': self.id,
             'run': self.run.serialize(),
-            'user_id': self.user.serialize(),
+            'user': self.user.serialize(),
             'comment': self.comment,
             'created': self.created.strftime(ISO_FORMAT),
             'updated': self.updated.strftime(ISO_FORMAT)
         }
+
+    def validate(self):
+        if self.comment is None or self.comment == '':
+            return 'Must supply comment text'
 
     def __repr__(self):
         return '<RunComment {}>'.format(self.id)
