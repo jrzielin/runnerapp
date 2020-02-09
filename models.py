@@ -153,6 +153,16 @@ class Interval(db.Model):
             'updated': self.updated.strftime(ISO_FORMAT)
         }
 
+    def validate(self):
+        if self.distance is None:
+            return 'Must supply distance'
+        
+        if self.duration is None:
+            return 'Must supply duration'
+
+        if self.metric not in {True, False}:
+            return 'Invalid metric value'
+
     def __repr__(self):
         return '<Interval {}>'.format(self.id)
 

@@ -203,3 +203,97 @@ class CommentDetail(Resource):
             return make_response(jsonify({'error': 'Unable to delete comment'}), 500)
 
         return jsonify({'message': 'Comment successfully deleted'})
+
+class IntervalList(Resource):
+    @jwt_required()
+    def get(self, run_id):
+        run = models.Run.query.filter_by(id=run_id).first()
+        if not run:
+            return make_response(jsonify({'error': 'Run does not exist'}), 404)
+
+        intervals = models.Interval.query.filter_by(run_id=run_id)
+        intervals = [interval.serialize() for interval in intervals]
+        return jsonify({'intervals': intervals})
+
+    @jwt_required()
+    def post(self, run_id):
+        run = models.Run.query.filter_by(id=run_id).first()
+        if not run:
+            return make_response(jsonify({'error': 'Run does not exist'}), 404)
+
+        if run.user_id != current_identity.id:
+            return make_response(jsonify({'error': 'Unauthorized to add intervals to this run'}), 403)
+
+        interval = models.Interval(
+            run_id=run_id,
+            distance=parse_int(request.form.get('distance')),
+            duration=parse_int(request.form.get('duration')),
+            metric=parse_bool(request.form.get('metric', current_identity.metric))
+        )
+
+        error = interval.validate()
+        if error:
+            return make_response(jsonify({'error': error}), 400)
+
+        try:
+            db.session.add(interval)
+            db.session.commit()
+        except:
+            return make_response(jsonify({'error': 'Unable to add interval'}), 500)
+
+        return jsonify({'interval': interval.serialize()})
+
+class IntervalDetail(Resource):
+    @jwt_required()
+    def get(self, interval_id):
+        interval = models.Interval.query.filter_by(id=interval_id).first()
+        if interval is None:
+            return make_response(jsonify({'error': 'Interval does not exist'}), 404)
+
+        return jsonify({'interval': interval.serialize()})
+
+    @jwt_required()
+    def put(self, interval_id):
+        interval = models.Interval.query.filter_by(id=interval_id).first()
+        if interval is None:
+            return make_response(jsonify({'error': 'Interval does not exist'}), 404)
+
+        if interval.run.user_id != current_identity.id:
+            return make_response(jsonify({'error': 'Unauthorized to update this interval'}), 403)
+
+        if 'distance' in request.form:
+            interval.distance = parse_int(request.form['distance'])
+
+        if 'duration' in request.form:
+            interval.duration = parse_int(request.form['duration'])
+
+        if 'metric' in request.form:
+            interval.metric = parse_bool(request.form['metric'])
+
+        error = interval.validate()
+        if error:
+            return make_response(jsonify({'error': error}), 400)
+
+        try:
+            db.session.commit()
+        except:
+            return make_response(jsonify({'error': 'Unable to update interval'}), 500)
+
+        return jsonify({'interval': interval.serialize()})
+
+    @jwt_required()
+    def delete(self, interval_id):
+        interval = models.Interval.query.filter_by(id=interval_id).first()
+        if interval is None:
+            return make_response(jsonify({'error': 'Interval does not exist'}), 404)
+
+        if interval.run.user_id != current_identity.id:
+            return make_response(jsonify({'error': 'Unauthorized to update this interval'}), 403)
+
+        try:
+            db.session.delete(interval)
+            db.session.commit()
+        except:
+            return make_response(jsonify({'error': 'Unable to delete interval'}), 500)
+
+        return jsonify({'message': 'Successfully deleted interval'})

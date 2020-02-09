@@ -19,7 +19,7 @@ from auth import authenticate, identity
 
 jwt = JWT(app, authenticate, identity)
 
-from controllers.runs import RunList, RunDetail, CommentsList, CommentDetail
+from controllers.runs import RunList, RunDetail, CommentsList, CommentDetail, IntervalList, IntervalDetail
 from controllers.users import Register, UserList, UserDetail, UserRuns, Profile
 
 api.add_resource(Profile, '/api/profile')
@@ -30,6 +30,8 @@ api.add_resource(UserRuns, '/api/users/<int:user_id>/runs')
 api.add_resource(RunList, '/api/runs')
 api.add_resource(RunDetail, '/api/runs/<int:run_id>')
 api.add_resource(CommentsList, '/api/runs/<int:run_id>/comments')
+api.add_resource(IntervalList, '/api/runs/<int:run_id>/intervals')
+api.add_resource(IntervalDetail, '/api/intervals/<int:interval_id>')
 api.add_resource(CommentDetail, '/api/comments/<int:comment_id>')
 
 if __name__ == '__main__':
