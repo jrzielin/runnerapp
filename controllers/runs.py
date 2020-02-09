@@ -4,7 +4,7 @@ from flask_jwt import jwt_required, current_identity
 from sqlalchemy import desc
 import models
 from helpers import parse_date, parse_bool, parse_int
-from app import db
+from application import db
 
 class RunList(Resource):
     @jwt_required()

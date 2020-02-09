@@ -1,7 +1,7 @@
 from flask import jsonify, request, make_response
 from flask_restful import Resource
 from flask_jwt import jwt_required, current_identity
-from app import db, models
+from application import db, models
 from sqlalchemy.exc import IntegrityError
 from helpers import parse_int, parse_bool
 from constants import MAX_PAGE_SIZE, DEFAULT_PAGE, DEFAULT_PAGE_SIZE

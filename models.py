@@ -1,4 +1,4 @@
-from app import db, bcrypt
+from application import db, bcrypt
 from datetime import datetime
 from validate_email import validate_email
 from constants import ISO_FORMAT

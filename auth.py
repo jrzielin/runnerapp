@@ -1,5 +1,5 @@
 import models
-from app import bcrypt
+from application import bcrypt
 
 def authenticate(email, password):
     user = models.User.query.filter_by(email=email).first()
